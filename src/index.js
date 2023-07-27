@@ -117,7 +117,7 @@ class Field {
 }
 
 const field = new Field(document.getElementById("scene"));
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < 200; i++) {
   field.addBall(
     new Ball(
       Math.random() * 1000,
