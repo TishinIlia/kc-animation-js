@@ -6,13 +6,13 @@ const randomInteger = (min, max) => {
 const BALL_SIZE = 30;
 
 document.body.style = `--ball-size: ${BALL_SIZE}px;`;
-
 class Ball {
-  constructor(x0, y0, speed, angle) {
+  constructor(x0, y0, speed, angle, index) {
     this.x = x0;
     this.y = y0;
     this.speed = speed;
     this.angle = angle;
+    this.id = index;
   }
 
   move(t, restrictions) {
@@ -34,6 +34,33 @@ class Ball {
       this.y += -this.y + restrictions[0];
       this.angle = -this.angle;
     }
+  }
+
+  checkCollision (ball) {
+    const {ball: otherBall} = ball
+    const dx = otherBall.x - this.x;
+    const dy = otherBall.y - this.y;
+    return [BALL_SIZE ** 2 > dx ** 2 + dy ** 2, BALL_SIZE - Math.sqrt(dx*dx+dy*dy)];
+  }
+
+  resolveCollision (ball) {
+    const {ball: otherBall} = ball
+
+    this.angle = Math.PI / 2 - this.angle;
+    otherBall.angle = Math.PI / 2 - this.angle;
+  }
+
+  adjustPositions (ball, depth) {
+    const {ball: otherBall} = ball
+
+    let norm = [otherBall.x - this.x, otherBall.y - this.y];
+    const mag = Math.sqrt(norm[0]*norm[0] + norm[1]*norm[1]);
+    norm = [norm[0]/mag,norm[1]/mag];
+    const correction = [depth*norm[0],depth*norm[1]];
+    this.x -=  correction[0];
+    this.y -=  correction[1];
+    otherBall.x +=  correction[0];
+    otherBall.y +=  correction[1];
   }
 }
 
@@ -63,6 +90,17 @@ class Field {
     } else {
       this.balls.forEach(({ ball }) => {
         ball.move((timestamp - this.t) / 1000, [0, 0, this.width, this.height]);
+
+        for (let ball2 of this.balls) {
+          if (ball.id === ball2.ball.id) {
+            continue
+          }
+          const [isCollision, collisionDepth] = ball.checkCollision(ball2)
+          if (isCollision) {
+            ball.adjustPositions(ball2, collisionDepth)
+            ball.resolveCollision(ball2)
+          }
+        }
       });
       this.t = timestamp;
     }
@@ -74,20 +112,19 @@ class Field {
   draw() {
     this.balls.forEach(({ el, ball }) => {
       el.style.transform = `translate(${ball.x}px, ${ball.y}px)`;
-      // el.style.left = `${ball.x}px`;
-      // el.style.top = `${ball.y}px`;
     });
   }
 }
 
 const field = new Field(document.getElementById("scene"));
-for (let i = 0; i < 200; i++) {
+for (let i = 0; i < 8; i++) {
   field.addBall(
     new Ball(
-      Math.random() > 0.5 ? 0 : field.width,
-      Math.random() > 0.5 ? 0 : field.height,
-      randomInteger(0, 500),
-      randomInteger(0, Math.PI * 2 * 100) / 100
+      Math.random() * 1000,
+      Math.random() * 1000,
+      randomInteger(100, 500),
+      randomInteger(360, Math.PI * 2 * 100) / 100,
+      i
     )
   );
 }
